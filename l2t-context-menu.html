@@ -47,7 +47,7 @@ Custom property | Description | Default
 			-moz-box-shadow:0 2px 5px 0 rgba(0,0,0,.4);
 			box-shadow:0 2px 5px 0 rgba(0,0,0,.4);
 		}
-		#context-menu[opened] {
+		#context-menu[active] {
 			display: block;
 		}
 		::content li, ::content paper-item{
@@ -93,7 +93,7 @@ Custom property | Description | Default
 				* Sting for storing class name
 				* of which classes should be listened too
 				*
-				* @attribute selector
+				* @attribute parentclass
 				* @type String
 				*/
 				selector: String,
@@ -107,8 +107,14 @@ Custom property | Description | Default
 				*/
 				opened: {
 					type: Boolean,
-					value: false
+					value: false,
+					notify: true
 				},
+				target: {
+					type: Object,
+					value: null,
+					notify: true
+				}
 			},
 			/**
 			* Method to show the menu
@@ -127,19 +133,19 @@ Custom property | Description | Default
 			*/
 			close(){
 				this.opened = false;
+				this.target = null;
 			},
 			/**
 			* Method to work out to place
 			* click event and return boolean
 			*
 			*/
-			_parentMatchingSelector(e,selector) {
-				var elem = e.srcElement || e.target;
-				if(elem.matches(selector))
-					return n;
-				while(elem=elem.parentNode)
-					if(elem.matches(selector))
-						return elem;
+			_parentMatchingSelector(e, selector) {
+				if($(e).is(selector))
+					return e;
+				while(e=e.parentNode)
+					if($(e).is(selector))
+						return e;
 				return false;
 			},
 			/**
@@ -150,7 +156,7 @@ Custom property | Description | Default
 			*/
 			_clickListener(){
 				document.addEventListener("click",e=>{
-					if(!this._parentMatchingSelector(e,'.menu-trigger') && (e.which || e.button) === 1)
+					if(this._parentMatchingSelector(e.target,'.menu-trigger') == false && (e.which || e.button) === 1)
 						this.close();
 				});
 			},
@@ -162,8 +168,9 @@ Custom property | Description | Default
 			*/
 			_contextListener(){
 				document.addEventListener("contextmenu", e=>{
-					var taskItemInContext=this._parentMatchingSelector(e, this.selector)||true;
-					if (taskItemInContext) {
+					var elem = this._parentMatchingSelector(e.target, this.selector);
+					if (elem) {
+						this.target = elem;
 						e.preventDefault();
 						this.open();
 						this._positionMenu(e);
